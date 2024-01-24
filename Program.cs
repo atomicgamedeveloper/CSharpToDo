@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks.Dataflow;
-
+using System.IO;
+using System.Text.Json;
 public struct Todo
 {
-    public string Name;
-    public Boolean Completion;
-
+    public string Name { get; set; }
+    public Boolean Completion { get; set; }
     public Todo(string name, Boolean completion)
     {
         Name = name;
@@ -37,8 +37,12 @@ public class Program
         {
             Console.WriteLine($"{i + 1}. {Todos[i]}");
         }
-        Console.WriteLine($"\nNumber (1-{Todos.Count}):");
-        string? toEditStr = Console.ReadLine();
+        string? toEditStr = "1";
+        if (Todos.Count > 1)
+        {
+            Console.WriteLine($"\nNumber (1-{Todos.Count}):");
+            toEditStr = Console.ReadLine();
+        }
         bool isInt = int.TryParse(toEditStr, out int toEdit);
         bool withinRange = toEdit > 0 && toEdit <= Todos.Count;
         while (!isInt || !withinRange)
@@ -57,7 +61,7 @@ public class Program
         Console.WriteLine("Choose a todo to edit.");
         int ToEdit = ChooseTodo(Todos);
         Todo todo = Todos[ToEdit];
-        Console.WriteLine($"You choose '{todo.Name}'.");
+        Console.WriteLine($"You chose '{todo.Name}'.");
         Console.WriteLine();
         Console.WriteLine("What would you like to do? (toggle, remove, rename, exit)");
         string? command = Console.ReadLine();
@@ -131,10 +135,44 @@ public class Program
             Console.WriteLine($"{i + 1}. {Todos[i]}");
         }
     }
+    public static void saveTodos(List<Todo> Todos)
+    {
+        string path = @".\todos.json";
 
+        try
+        {
+            string jsonString = JsonSerializer.Serialize<List<Todo>>(Todos);
+            File.WriteAllText(path, jsonString);
+        }
+        catch (IOException e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
+    public static List<Todo> loadTodos()
+    {
+        string path = @".\todos.json";
+
+        try
+        {
+            string jsonString = File.ReadAllText(path);
+            List<Todo>? NewTodos = JsonSerializer.Deserialize<List<Todo>>(jsonString);
+            if (NewTodos != null)
+            {
+                return NewTodos;
+            }
+            return [];
+        }
+        catch (Exception)
+        {
+            saveTodos([]);
+            return [];
+        }
+    }
     public static void Main()
     {
-        List<Todo> Todos = [];
+        List<Todo> Todos = loadTodos();
         Console.WriteLine("Let's get some stuff done!");
         string? input = "none";
         while (input != "exit")
@@ -158,6 +196,7 @@ public class Program
                     Console.WriteLine($"Added new todo, '{input}'!");
                     break;
             }
+            saveTodos(Todos);
         }
     }
 }
